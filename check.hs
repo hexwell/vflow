@@ -1,45 +1,63 @@
-import Text.Parsec (parse)
-import Text.ParserCombinators.Parsec (GenParser, char, noneOf, many, string, optionMaybe, anyChar, eof, ParseError)
-import System.IO
-import System.Environment
+import Text.Parsec (parse, (<|>))
+import Text.Parsec.String (Parser)
+import Text.ParserCombinators.Parsec (char, noneOf, many, string, optionMaybe, anyChar, eof, ParseError)
+import System.IO (IOMode(ReadMode), openFile, hGetContents)
+import System.Environment (getArgs)
 
-eol :: GenParser Char st Char
+
+type Name = String
+type Comment = String
+
+data Variable = Variable Name (Maybe Comment) deriving Show
+
+data EitherVariableDeclaration = Simple Variable | Either [Variable] deriving Show
+
+type OptionalVariables = [Variable]
+
+data OverridableVariableDeclaration = Normal Variable | Override Variable deriving Show
+
+data Block = ImportsBlock [EitherVariableDeclaration] OptionalVariables | ExportsBlock [OverridableVariableDeclaration] deriving Show
+
+
+eol :: Parser Char
 eol = char '\n'
 
-line :: GenParser Char st String
+line :: Parser String
 line = many $ noneOf "\n"
 
-importsBlock :: GenParser Char st ()
+variable :: Parser Variable
+variable = do
+    string "#   "
+    name <- many $ noneOf "\n"
+    eol
+    return (Variable name Nothing)
+
+importsBlock :: Parser Block
 importsBlock = do
     string "# IMPORTS:"
     eol
-    line
-    eol
-    return ()
+    variables <- many variable
+    return (ImportsBlock (map Simple variables) [])
 
-exportsBlock :: GenParser Char st ()
+exportsBlock :: Parser Block
 exportsBlock = do
     string "# EXPORTS:"
     eol
-    line
-    eol
-    return ()
+    variables <- many variable
+    return (ExportsBlock (map Normal variables))
 
-parser :: GenParser Char st ()
+block :: Parser Block
+block = importsBlock <|> exportsBlock
+
+parser :: Parser [Block]
 parser = do
-    optionMaybe importsBlock
+    blocks <- many block
     many anyChar
-    optionMaybe exportsBlock
-    many anyChar
-    -- parser
-    return ()
-
-parser' = do
-    parser
     eof
+    return blocks
 
-parse' :: String -> Either ParseError ()
-parse' = parse parser' "parsing error"
+parse' :: String -> Either ParseError [Block]
+parse' = parse parser "parsing error"
 
 main :: IO ()
 main = do
