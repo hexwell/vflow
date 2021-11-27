@@ -9,7 +9,7 @@ eol = char '\n'
 line :: GenParser Char st String
 line = many $ noneOf "\n"
 
-importsBlock ::GenParser Char st ()
+importsBlock :: GenParser Char st ()
 importsBlock = do
     string "# IMPORTS:"
     eol
@@ -17,7 +17,7 @@ importsBlock = do
     eol
     return ()
 
-exportsBlock ::GenParser Char st ()
+exportsBlock :: GenParser Char st ()
 exportsBlock = do
     string "# EXPORTS:"
     eol
