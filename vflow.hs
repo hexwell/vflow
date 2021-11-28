@@ -1,5 +1,6 @@
 import Control.Applicative ((<|>))
 import Control.Monad (foldM_)
+import Data.List (intercalate)
 import Data.Maybe (catMaybes)
 import Data.Set (Set, fromList, union, member)
 import qualified Data.Set as S (empty)
@@ -196,10 +197,6 @@ analyze s (ImportsBlock vs maybeOs) = do
     extractVariables (Simple v) = [v]
     extractVariables (Either vs) = vs
 
-    formatEither :: [Variable] -> String
-    formatEither (v:[]) = name v
-    formatEither (v:vs) = formatEither [v] ++ " / " ++ formatEither vs
-
     checkImport :: AnalyzerState -> EitherVariableDeclaration -> IO ()
     checkImport s (Simple (Variable n _)) =
         if member n s
@@ -210,7 +207,7 @@ analyze s (ImportsBlock vs maybeOs) = do
         if any (((flip member) s) . name) vs
         then return ()
         else error' $ "Import of either variable "
-                  ++ formatEither vs
+                  ++ intercalate " / " (map name vs)
                   ++ " not satisfied."
 
     checkOptionalImport :: AnalyzerState -> Variable -> IO ()
