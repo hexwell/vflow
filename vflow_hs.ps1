@@ -1,5 +1,5 @@
 cls
 ghc .\vflow.hs
 echo ""
-.\vflow.exe bash test.txt
+.\vflow.exe bash $args[0]
 echo ""

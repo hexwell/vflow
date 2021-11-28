@@ -1,2 +1,2 @@
 cls
-python .\vflow.py bash test.txt
+python .\vflow.py bash $args[0]
