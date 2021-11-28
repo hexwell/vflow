@@ -16,7 +16,7 @@ type OptionalVariables = [Variable]
 
 data OverridableVariableDeclaration = Normal Variable | Override Variable deriving Show
 
-data Block = ImportsBlock [EitherVariableDeclaration] OptionalVariables | ExportsBlock [OverridableVariableDeclaration] deriving Show
+data Block = ImportsBlock [EitherVariableDeclaration] (Maybe OptionalVariables) | ExportsBlock [OverridableVariableDeclaration] deriving Show
 
 
 eol :: Parser Char
@@ -37,7 +37,7 @@ importsBlock = do
     string "# IMPORTS:"
     eol
     variables <- many variable
-    return (ImportsBlock (map Simple variables) [])
+    return (ImportsBlock (map Simple variables) Nothing)
 
 exportsBlock :: Parser Block
 exportsBlock = do
@@ -61,7 +61,7 @@ parse' = parse parser "parsing error"
 
 main :: IO ()
 main = do
-    file:[] <- getArgs
+    lang:file:[] <- getArgs
     handle <- openFile file ReadMode
     content <- hGetContents handle
 
