@@ -1,5 +1,4 @@
 import Control.Applicative ((<|>))
-import Data.Function ((&))
 import Data.Maybe (catMaybes)
 import System.Environment (getArgs)
 import System.IO (readFile)
@@ -104,13 +103,12 @@ line :: Parser String
 line = manyTill (noneOf "\n") endOfLine
 
 block :: Parser (Maybe Block)
-block = ((
-            try importsBlock
-        <|> try exportsBlock
+block = maybeBlock <|> maybeLine
+  where
+    block = try importsBlock <|> try exportsBlock
+    maybeBlock = block >>= (return . Just)
+    maybeLine = line >> (return Nothing)
 
-        ) >>= (return . Just))
-
-    <|> (line >> (return Nothing))
 
 parser :: Parser [Block]
 parser = do
