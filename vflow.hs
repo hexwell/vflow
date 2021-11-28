@@ -109,7 +109,6 @@ block = maybeBlock <|> maybeLine
     maybeBlock = block >>= (return . Just)
     maybeLine = line >> (return Nothing)
 
-
 parser :: Parser [Block]
 parser = do
     blocks <- many block
