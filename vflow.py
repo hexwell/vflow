@@ -175,8 +175,13 @@ class Analyzer:
                 if check_either:
                     check_either = False
 
-                    if not any(map(self.variables.__contains__, either)):
+                    satisfied = sum(map(self.variables.__contains__, either))
+
+                    if not satisfied:
                         self.error('Import of either variable {} not satisfied.'.format(' / '.join(f"'{v}'" for v in either)))
+
+                    if satisfied > 1:
+                        self.error('More than one import of either variable {} satisfied.'.format(' / '.join(f"'{v}'" for v in either)))
 
                     either = set()
 
