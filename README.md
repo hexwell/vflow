@@ -14,17 +14,17 @@ A block can be either an Imports or an Exports block.
 ## Imports Blocks
 Imports blocks start with an Imports directive. <br>
 Imports block contain variables. <br>
-Required variables are listed one for each line, indented one level more than the Imports directive. <br>
 These are the required variables that must be satisfied by other modules. <br>
+Variables are listed one for each line, indented one level more than the Imports directive. <br>
 
 
-Inside an Imports block, using an Either directive, indented one level more than the Imports directive, <br>
-a list of variables, of which at least and at most one must be satisfied, can be specified.<br>
+Either directives can be used to specify a list of variables, of which at least and at most one must be satisfied.
+Either directives can be used inside an Imports block, indented one level more than the Imports directive. <br>
 Variables are listed one for each line, indented one level more than the Either directive. <br>
 
 
-Inside an Imports block, using an Optionals directive, indented at the same level as the Imports directive, <br>
-a list of optional variables can be specified. <br>
+Optionals directives can be used to specify a list of optional variables. <br>
+Optionals directives can be used inside an Imports block, indented at the same level as the Imports directive. <br>
 Variables are listed one for each line, indented one level more than the Optionals directive. <br>
 
 Comments for variables can be specified by adding a colon after the variable name and typing the comment after the colon. <br>
@@ -54,8 +54,8 @@ This declares required variables a, b (with comment bbbb), c and either d or f, 
 
 Exports blocks start with an Exports directive. <br>
 Exports block contain variables. <br>
-Variables are listed one for each line, indented one level more than the Exports directive. <br>
 These variables can satisfy requirements in other modules. <br>
+Variables are listed one for each line, indented one level more than the Exports directive. <br>
 
 An override modifier can be added before the variable name to indicate that the variable overrides a previously defined variable with the same name. <br>
 
