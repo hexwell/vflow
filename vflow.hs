@@ -1,15 +1,13 @@
-import Control.Applicative ((<|>))
-import Control.Monad (foldM_)
+import Control.Applicative ((<|>), many)
+import Control.Monad (foldM_, forM_)
 import Data.List (intercalate)
 import Data.Maybe (catMaybes)
 import Data.Set (Set, fromList, union, member)
 import qualified Data.Set as S (empty)
 import System.Environment (getArgs)
 import System.Exit(exitWith, ExitCode(ExitFailure))
-import System.IO (readFile)
 import Text.Parsec (ParseError, Parsec, getState, string, endOfLine, noneOf,
-                    many, char, skipMany, optionMaybe, try, manyTill, eof,
-                    runParser)
+                    char, skipMany, optionMaybe, try, manyTill, eof, runParser)
 
 data ParserState = ParserState String Int Int
 type Parser = Parsec String ParserState
@@ -174,24 +172,34 @@ checkEmptyComment name _ =
 name :: Variable -> Name
 name (Variable n _) = n
 
+runAll :: [a -> IO ()] -> a -> IO ()
+runAll = sequence_ .: sequence
+    where
+        (.:) :: (c -> d) -> (a -> b -> c) -> (a -> b -> d)
+        (.:) = (.) . (.)
+
+inspections :: [a] -> [a -> IO ()] -> IO ()
+inspections vs = forM_ vs . runAll
+
 analyze :: AnalyzerState -> Block -> IO (AnalyzerState)
 analyze s (ImportsBlock vs maybeOs) = do
-    mapM_ checkComment $ concatMap extractVariables vs
-    mapM_ (checkImport s) vs
+    inspections vs
+        [ mapM_ checkComment . extractVariables
+        , checkImport s ]
 
     case maybeOs of
         Nothing -> return ()
-        Just os -> mapM_ (checkOptionalImport s) os
+        Just os -> inspections os
+            [ checkOptionalImport s ]
 
     return s
 
   where
     checkComment :: Variable -> IO ()
+    checkComment (Variable name Nothing) = return ()
     checkComment (Variable name (Just comment)) = do
         warning $ "Comment in import of variable '" ++ name ++ "'."
         checkEmptyComment name comment
-
-    checkComment (Variable name Nothing) = return ()
 
     extractVariables :: EitherVariableDeclaration -> [Variable]
     extractVariables (Simple v) = [v]
@@ -207,8 +215,8 @@ analyze s (ImportsBlock vs maybeOs) = do
         if any (((flip member) s) . name) vs
         then return ()
         else error' $ "Import of either variable "
-                  ++ intercalate " / " (map name vs)
-                  ++ " not satisfied."
+                   ++ intercalate " / " (map name vs)
+                   ++ " not satisfied."
 
     checkOptionalImport :: AnalyzerState -> Variable -> IO ()
     checkOptionalImport s (Variable n _) =
@@ -218,8 +226,10 @@ analyze s (ImportsBlock vs maybeOs) = do
                     ++ n ++ "' not satisfied."
 
 analyze s (ExportsBlock vs) = do
-    mapM_ (checkComment . extractVariable) vs
-    mapM_ (checkOverride s) vs
+    inspections vs
+        [ checkComment . extractVariable
+        , checkOverride s ]
+
     return . union s . fromList $ map (name . extractVariable) vs
 
   where
