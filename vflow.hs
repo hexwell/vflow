@@ -1,5 +1,7 @@
 import Control.Applicative ((<|>), many)
-import Control.Monad (foldM_, forM_)
+import Control.Category ((>>>))
+import Control.Monad (void, foldM_, forM_)
+import Data.Function ((&))
 import Data.List (intercalate)
 import Data.Maybe (catMaybes)
 import Data.Set (Set, fromList, union, member)
@@ -43,11 +45,11 @@ optionalsDirective = "Optionals:"
 overrideModifier :: String
 overrideModifier = "override "
 
-indented :: Int -> String -> Parser ()
+indented :: Int -> String -> Parser String
 indented level s = do
     ParserState comment baseIndent indent <- getState
-    string (comment ++ (replicate (baseIndent + indent * level) ' ') ++ s)
-    return ()
+    string $ comment ++ (replicate (baseIndent + indent * level) ' ')
+    string s
 
 token :: Parser String
 token = many $ noneOf " :\n"
@@ -88,35 +90,35 @@ variables level v = do
     return (catMaybes vs)
 
 eitherVariableDeclaration :: Int -> Parser EitherVariableDeclaration
-eitherVariableDeclaration ci = do
-    indented ci eitherDirective
+eitherVariableDeclaration l = do
+    indented l eitherDirective
     endOfLine
-    vs <- variables (ci + 1) simpleVariableDeclaration
+    vs <- variables (l + 1) simpleVariableDeclaration
     return (Either vs)
 
 simpleOrEitherVariableDeclaration :: Int -> Parser EitherVariableDeclaration
-simpleOrEitherVariableDeclaration ci =
-        (try (eitherVariableDeclaration ci))
-    <|> (try (simpleVariableDeclaration ci) >>= return . Simple)
+simpleOrEitherVariableDeclaration l =
+        (try (eitherVariableDeclaration l))
+    <|> (try (simpleVariableDeclaration l) >>= return . Simple)
 
-optionals :: Parser [OptionalVariableDeclaration]
-optionals = do
-    indented 0 optionalsDirective
+optionals :: Int -> Parser [OptionalVariableDeclaration]
+optionals l = do
+    indented l optionalsDirective
     endOfLine
-    variables 1 simpleVariableDeclaration
+    variables (l + 1) simpleVariableDeclaration
 
 importsBlock :: Parser Block
 importsBlock = do
     indented 0 importsDirective
     endOfLine
     vs <- variables 1 simpleOrEitherVariableDeclaration
-    os <- optionMaybe optionals
+    os <- optionMaybe $ optionals 0
     return (ImportsBlock vs os)
 
 overridableVariableDeclaration :: Int -> Parser OverridableVariableDeclaration
 overridableVariableDeclaration l = do
     indented l ""
-    modifier <- optionMaybe $ (string overrideModifier >> (return ()))
+    modifier <- optionMaybe $ string overrideModifier & void
     v <- variable
     return $ case modifier of
         Nothing -> Normal v
@@ -135,8 +137,8 @@ line = manyTill (noneOf "\n") endOfLine
 block :: Parser (Maybe Block)
 block = maybeBlock <|> maybeLine
   where
-    block = try importsBlock <|> try exportsBlock
-    maybeBlock = block >>= (return . Just)
+    blk = try importsBlock <|> try exportsBlock
+    maybeBlock = blk >>= (return . Just)
     maybeLine = line >> (return Nothing)
 
 parser :: Parser [Block]
@@ -147,6 +149,8 @@ parser = do
 
 parse :: String -> (String -> String -> Either ParseError [Block])
 parse "bash" = runParser parser (ParserState "#" 1 2)
+
+type AnalyzerState = Set Name
 
 msg :: String -> IO ()
 msg s = do
@@ -161,7 +165,18 @@ error' s = do
     msg $ "ERROR: " ++ s
     exitWith $ ExitFailure 1
 
-type AnalyzerState = Set Name
+runAll :: Monad m => [a -> m b] -> a -> m [b]
+runAll = sequence .: sequence
+    where
+        (.:) :: (c -> d) -> (a -> b -> c) -> (a -> b -> d)
+        (.:) = (.) . (.)
+
+inspections :: Monad m => [a] -> [a -> m b] -> m ()
+inspections vs = forM_ vs . runAll
+
+checkName :: Variable -> IO ()
+checkName (Variable "" _) = error "Empty variable name."
+checkName (Variable _ _) = return ()
 
 checkEmptyComment :: Name -> Comment -> IO ()
 checkEmptyComment name "" = warning $
@@ -172,25 +187,20 @@ checkEmptyComment name _ =
 name :: Variable -> Name
 name (Variable n _) = n
 
-runAll :: Monad m => [a -> m b] -> a -> m [b]
-runAll = sequence .: sequence
-    where
-        (.:) :: (c -> d) -> (a -> b -> c) -> (a -> b -> d)
-        (.:) = (.) . (.)
-
-inspections :: Monad m => [a] -> [a -> m b] -> m ()
-inspections vs = forM_ vs . runAll
-
 analyze :: AnalyzerState -> Block -> IO (AnalyzerState)
 analyze s (ImportsBlock vs maybeOs) = do
     inspections vs
-        [ mapM_ checkComment . extractVariables
+        [ extractVariables >>> (mapM_ $ runAll
+            [ checkName
+            , checkComment ])
         , checkImport s ]
 
     case maybeOs of
         Nothing -> return ()
         Just os -> inspections os
-            [ checkOptionalImport s ]
+            [ checkName
+            , checkComment
+            , checkOptionalImport s ]
 
     return s
 
@@ -227,21 +237,23 @@ analyze s (ImportsBlock vs maybeOs) = do
 
 analyze s (ExportsBlock vs) = do
     inspections vs
-        [ checkComment . extractVariable
+        [ extractVariable >>> (void . runAll
+            [ checkName
+            , checkComment ])
         , checkOverride s ]
 
-    return . union s . fromList $ map (name . extractVariable) vs
+    return . union s . fromList $ map (extractVariable >>> name) vs
 
   where
+    extractVariable :: OverridableVariableDeclaration -> Variable
+    extractVariable (Normal v) = v
+    extractVariable (Override v) = v
+
     checkComment :: Variable -> IO ()
     checkComment (Variable name (Just comment)) =
         checkEmptyComment name comment
     checkComment (Variable name Nothing) =
         warning $ "Variable '" ++ name ++ "' is missing comment."
-
-    extractVariable :: OverridableVariableDeclaration -> Variable
-    extractVariable (Normal v) = v
-    extractVariable (Override v) = v
 
     checkOverride :: AnalyzerState -> OverridableVariableDeclaration -> IO ()
     checkOverride s (Normal (Variable n _)) =
