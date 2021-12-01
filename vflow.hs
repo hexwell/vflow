@@ -172,13 +172,13 @@ checkEmptyComment name _ =
 name :: Variable -> Name
 name (Variable n _) = n
 
-runAll :: [a -> IO ()] -> a -> IO ()
-runAll = sequence_ .: sequence
+runAll :: Monad m => [a -> m b] -> a -> m [b]
+runAll = sequence .: sequence
     where
         (.:) :: (c -> d) -> (a -> b -> c) -> (a -> b -> d)
         (.:) = (.) . (.)
 
-inspections :: [a] -> [a -> IO ()] -> IO ()
+inspections :: Monad m => [a] -> [a -> m b] -> m ()
 inspections vs = forM_ vs . runAll
 
 analyze :: AnalyzerState -> Block -> IO (AnalyzerState)
