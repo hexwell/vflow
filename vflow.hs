@@ -261,8 +261,7 @@ analyze s (ExportsBlock vs) = do
         then warning $ "Re-declaration of variable '" ++ n
                     ++ "' without " ++ overrideModifier ++ "modifier."
         else return ()
-    checkOverride _ (Override _) =
-        return ()
+    checkOverride _ (Override _) = return ()
 
 main :: IO ()
 main = do
