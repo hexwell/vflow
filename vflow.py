@@ -1,7 +1,7 @@
 import platform
 
 from argparse import ArgumentParser
-from os.path import join
+from os.path import join, dirname
 
 
 class Analyzer:
@@ -196,7 +196,7 @@ def bash(root):
 
     analyzer.analyze(root)
 
-    wd = '.'
+    wd = dirname(root)
     with open(root) as f:
         for line in f:
             if line.startswith(SOURCE_CMD):
