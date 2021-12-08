@@ -57,7 +57,7 @@ token = many $ noneOf " :\n"
 spaces :: Parser ()
 spaces = skipMany $ char ' '
 
-comment :: Parser String
+comment :: Parser Comment
 comment = do
     spaces
     char ':'
