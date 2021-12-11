@@ -1,10 +1,13 @@
 import Control.Applicative ((<|>), many)
 import Control.Category ((>>>))
-import Control.Monad (void, foldM_, forM_)
+import Control.Monad (foldM_)
+import Data.Foldable (forM_)
 import Data.Function ((&))
+import Data.Functor (void)
 import Data.List (intercalate)
 import Data.Maybe (catMaybes)
 import Data.Set (Set, fromList, union, member)
+import Data.Traversable (sequence)
 import qualified Data.Set as S (empty)
 import System.Environment (getArgs)
 import System.Exit(exitWith, ExitCode(ExitFailure))
@@ -165,13 +168,13 @@ error' s = do
     msg $ "ERROR: " ++ s
     exitWith $ ExitFailure 1
 
-runAll :: Monad m => [a -> m b] -> a -> m [b]
+runAll :: (Traversable t, Monad m) => t (a -> m b) -> a -> m (t b)
 runAll = sequence .: sequence
     where
         (.:) :: (c -> d) -> (a -> b -> c) -> (a -> b -> d)
         (.:) = (.) . (.)
 
-inspections :: Monad m => [a] -> [a -> m b] -> m ()
+inspections :: (Traversable t, Monad m) => t a -> t (a -> m b) -> m ()
 inspections vs = forM_ vs . runAll
 
 checkName :: Variable -> IO ()
