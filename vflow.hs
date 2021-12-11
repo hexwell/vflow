@@ -7,7 +7,7 @@ import Data.Functor (void)
 import Data.List (intercalate)
 import Data.Maybe (catMaybes)
 import Data.Set (Set, fromList, union, member)
-import Data.Traversable (sequence)
+import Data.Traversable (sequenceA)
 import qualified Data.Set as S (empty)
 import System.Environment (getArgs)
 import System.Exit(exitWith, ExitCode(ExitFailure))
@@ -168,8 +168,8 @@ error' s = do
     msg $ "ERROR: " ++ s
     exitWith $ ExitFailure 1
 
-runAll :: (Traversable t, Monad m) => t (a -> m b) -> a -> m (t b)
-runAll = sequence .: sequence
+runAll :: (Traversable t, Applicative f) => t (a -> f b) -> a -> f (t b)
+runAll = sequenceA .: sequenceA
     where
         (.:) :: (c -> d) -> (a -> b -> c) -> (a -> b -> d)
         (.:) = (.) . (.)
