@@ -174,7 +174,8 @@ runAll = sequence .: sequence
         (.:) :: (c -> d) -> (a -> b -> c) -> (a -> b -> d)
         (.:) = (.) . (.)
 
-inspections :: (Traversable t, Monad m) => t a -> t (a -> m b) -> m ()
+inspections :: (Foldable f, Traversable t, Monad m) =>
+               f a -> t (a -> m b) -> m ()
 inspections vs = forM_ vs . runAll
 
 checkName :: Variable -> IO ()
