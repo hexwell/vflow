@@ -255,7 +255,7 @@ analyze s (ExportsBlock vs) = do
     extractVariable (Normal v) = v
     extractVariable (Override v) = v
 
-    checkComment v@(Variable _ name (Just comment)) = checkEmptyComment v
+    checkComment v = checkEmptyComment v
     checkComment (Variable _ name Nothing) =
       warning $ "Variable '" ++ name ++ "' is missing comment."
 
