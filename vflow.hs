@@ -1,6 +1,6 @@
 import Control.Applicative ((<|>), many)
 import Control.Category ((>>>))
-import Control.Monad (liftM, foldM_)
+import Control.Monad (foldM_)
 import Data.Foldable (forM_)
 import Data.Function ((&))
 import Data.Functor (void)
@@ -11,8 +11,8 @@ import Data.Traversable (sequenceA)
 import qualified Data.Set as S (empty)
 import System.Environment (getArgs)
 import System.Exit(exitWith, ExitCode(ExitFailure))
-import Text.Parsec (ParseError, Parsec, SourcePos, getState, statePos,
-                    getParserState, string, endOfLine, noneOf, char, skipMany,
+import Text.Parsec (ParseError, Parsec, SourcePos, getState, getParserState,
+                    statePos, string, endOfLine, noneOf, char, skipMany,
                     optionMaybe, try, manyTill, eof, runParser)
 
 data ParserState = ParserState String Int Int
@@ -70,11 +70,11 @@ comment = do
 
 variable :: Parser Variable
 variable = do
-  pos <- liftM statePos getParserState
+  pstate <- getParserState
   name <- token
   comm <- optionMaybe comment
   endOfLine
-  return (Variable pos name comm)
+  return (Variable (statePos pstate) name comm)
 
 simpleVariableDeclaration :: Int -> Parser Variable
 simpleVariableDeclaration l = do
@@ -88,14 +88,14 @@ empty = do
   endOfLine
   return ()
 
-just :: Monad m => m x -> m (Maybe x)
-just = liftM Just
+just :: Functor f => f x -> f (Maybe x)
+just = fmap Just
 
-nothing :: Monad m => m x -> m (Maybe y)
-nothing = liftM $ \_ -> Nothing
+nothing :: Functor f => f x -> f (Maybe y)
+nothing = fmap $ \_ -> Nothing
 
 variables :: Parser v -> Parser [v]
-variables v = liftM catMaybes $ many $ maybeVar <|> maybeEmpty
+variables v = fmap catMaybes $ many $ maybeVar <|> maybeEmpty
   where
     maybeVar   = just    $ try v
     maybeEmpty = nothing $ try empty
@@ -110,8 +110,8 @@ eitherVariableDeclaration l = do
 simpleOrEitherVariableDeclaration :: Int -> Parser EitherVariableDeclaration
 simpleOrEitherVariableDeclaration l = try either <|> try simple
   where
-    either =                eitherVariableDeclaration l
-    simple = liftM Simple $ simpleVariableDeclaration l
+    either =               eitherVariableDeclaration l
+    simple = fmap Simple $ simpleVariableDeclaration l
 
 optionals :: Int -> Parser [OptionalVariableDeclaration]
 optionals l = do
@@ -191,10 +191,10 @@ checkName :: Variable -> IO ()
 checkName (Variable _ "" _) = error "Empty variable name."
 checkName (Variable _ _ _) = return ()
 
-checkEmptyComment :: Name -> Comment -> IO ()
-checkEmptyComment name "" = warning $
+checkEmptyComment :: Variable -> IO ()
+checkEmptyComment (Variable _ name (Just "")) = warning $
   "Empty comment for variable '" ++ name ++ "'."
-checkEmptyComment name _ = return ()
+checkEmptyComment _ = return ()
 
 name :: Variable -> Name
 name (Variable _ n _) = n
@@ -218,9 +218,9 @@ analyze s (ImportsBlock vs maybeOs) = do
 
   where
     checkComment (Variable _ name Nothing) = return ()
-    checkComment (Variable _ name (Just comment)) = do
+    checkComment v@(Variable _ name (Just comment)) = do
       warning $ "Comment in import of variable '" ++ name ++ "'."
-      checkEmptyComment name comment
+      checkEmptyComment v
 
     extractVariables (Simple v) = [v]
     extractVariables (Either vs) = vs
@@ -255,8 +255,7 @@ analyze s (ExportsBlock vs) = do
     extractVariable (Normal v) = v
     extractVariable (Override v) = v
 
-    checkComment (Variable _ name (Just comment)) =
-      checkEmptyComment name comment
+    checkComment v@(Variable _ name (Just comment)) = checkEmptyComment v
     checkComment (Variable _ name Nothing) =
       warning $ "Variable '" ++ name ++ "' is missing comment."
 
