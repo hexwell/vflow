@@ -70,11 +70,11 @@ comment = do
 
 variable :: Parser Variable
 variable = do
-  pstate <- getParserState
+  pos <- fmap statePos getParserState
   name <- token
   comm <- optionMaybe comment
   endOfLine
-  return (Variable (statePos pstate) name comm)
+  return (Variable pos name comm)
 
 simpleVariableDeclaration :: Int -> Parser Variable
 simpleVariableDeclaration l = do
@@ -217,7 +217,7 @@ analyze s (ImportsBlock vs maybeOs) = do
   return s
 
   where
-    checkComment (Variable _ name Nothing) = return ()
+    checkComment (Variable _ _ Nothing) = return ()
     checkComment v@(Variable _ name (Just comment)) = do
       warning $ "Comment in import of variable '" ++ name ++ "'."
       checkEmptyComment v
@@ -255,7 +255,7 @@ analyze s (ExportsBlock vs) = do
     extractVariable (Normal v) = v
     extractVariable (Override v) = v
 
-    checkComment v = checkEmptyComment v
+    checkComment v@(Variable _ _ (Just _)) = checkEmptyComment v
     checkComment (Variable _ name Nothing) =
       warning $ "Variable '" ++ name ++ "' is missing comment."
 
