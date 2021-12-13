@@ -176,9 +176,6 @@ error' p s = do
   msg p "ERROR" s
   exitWith $ ExitFailure 1
 
-(.:) :: (c -> d) -> (a -> b -> c) -> (a -> b -> d)
-(.:) = (.) . (.)
-
 runAll :: (Traversable t, Applicative f) => t (a -> f b) -> a -> f (t b)
 runAll = sequenceA .: sequenceA
 
