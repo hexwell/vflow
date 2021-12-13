@@ -1,6 +1,7 @@
 import Control.Applicative ((<|>), many)
 import Control.Category ((>>>))
 import Control.Monad (foldM_)
+import Data.Composition ((.:))
 import Data.Foldable (forM_)
 import Data.Function ((&))
 import Data.Functor (void)
@@ -164,17 +165,15 @@ parse "bash" = runParser parser (ParserState "#" 1 2)
 
 type AnalyzerState = Set Name
 
-msg :: String -> IO ()
-msg s = do
-  putStrLn s
-  putStrLn ""
+msg :: SourcePos -> String -> String -> IO ()
+msg p t s = putStrLn $ (show p) ++ "\n" ++ t ++ ": " ++ s ++ "\n"
 
-warning :: String -> IO ()
-warning s = msg $ "WARNING: " ++ s
+warning :: SourcePos -> String -> IO ()
+warning p = msg p "WARNING"
 
-error' :: String -> IO ()
-error' s = do
-  msg $ "ERROR: " ++ s
+error' :: SourcePos -> String -> IO ()
+error' p s = do
+  msg p "ERROR" s
   exitWith $ ExitFailure 1
 
 (.:) :: (c -> d) -> (a -> b -> c) -> (a -> b -> d)
@@ -192,7 +191,7 @@ checkName (Variable _ "" _) = error "Empty variable name."
 checkName (Variable _ _ _) = return ()
 
 checkEmptyComment :: Variable -> IO ()
-checkEmptyComment (Variable _ name (Just "")) = warning $
+checkEmptyComment (Variable p name (Just "")) = warning p $
   "Empty comment for variable '" ++ name ++ "'."
 checkEmptyComment _ = return ()
 
@@ -218,29 +217,32 @@ analyze s (ImportsBlock vs maybeOs) = do
 
   where
     checkComment (Variable _ _ Nothing) = return ()
-    checkComment v@(Variable _ name (Just comment)) = do
-      warning $ "Comment in import of variable '" ++ name ++ "'."
+    checkComment v@(Variable p name (Just comment)) = do
+      warning p $ "Comment in import of variable '" ++ name ++ "'."
       checkEmptyComment v
 
     extractVariables (Simple v) = [v]
     extractVariables (Either vs) = vs
 
-    checkImport s (Simple (Variable _ n _)) =
+    checkImport s (Simple (Variable p n _)) =
       if member n s
       then return ()
-      else error' $ "Import of variable '" ++ n ++ "' not satisfied."
+      else error' p $ "Import of variable '" ++ n ++ "' not satisfied."
 
     checkImport s (Either vs) =
       if any (((flip member) s) . name) vs
       then return ()
-      else error' $ "Import of either variable "
-                 ++ intercalate " / " (map name vs)
-                 ++ " not satisfied."
+      else error' p $ "Import of either variable "
+                   ++ intercalate " / " (map name vs)
+                   ++ " not satisfied."
+      where
+        (Variable p _ _) = vs !! 0
 
-    checkOptionalImport s (Variable _ n _) =
+    checkOptionalImport s (Variable p n _) =
       if member n s
       then return ()
-      else warning $ "Import of optional variable '" ++ n ++ "' not satisfied."
+      else warning p
+        $ "Import of optional variable '" ++ n ++ "' not satisfied."
 
 analyze s (ExportsBlock vs) = do
   inspections vs
@@ -256,13 +258,13 @@ analyze s (ExportsBlock vs) = do
     extractVariable (Override v) = v
 
     checkComment v@(Variable _ _ (Just _)) = checkEmptyComment v
-    checkComment (Variable _ name Nothing) =
-      warning $ "Variable '" ++ name ++ "' is missing comment."
+    checkComment (Variable p name Nothing) =
+      warning p $ "Variable '" ++ name ++ "' is missing comment."
 
-    checkOverride s (Normal (Variable _ n _)) =
+    checkOverride s (Normal (Variable p n _)) =
       if member n s
-      then warning $ "Re-declaration of variable '" ++ n
-                  ++ "' without " ++ overrideModifier ++ "modifier."
+      then warning p $ "Re-declaration of variable '" ++ n
+                    ++ "' without " ++ overrideModifier ++ "modifier."
       else return ()
     checkOverride _ (Override _) = return ()
 
