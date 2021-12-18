@@ -72,3 +72,8 @@ This is an example of an Exports block:
 ```
 
 This declares variables a (with comment aaaa) and b (without comment) and overrides variable c (with comment cccc).
+
+## Todo in vflow.hs
+
+- Multiple imports check
+- Bash multi-file traversal and analysis
