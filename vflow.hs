@@ -15,7 +15,9 @@ import Text.Parsec (ParseError, Parsec, SourcePos, getState, getParserState,
                     statePos, string, endOfLine, noneOf, char, skipMany,
                     optionMaybe, try, manyTill, eof, runParser)
 
-data ParserState = ParserState String Int Int
+type HostLangComment = String
+type Indent = Int
+data ParserState = ParserState HostLangComment Indent Indent
 type Parser = Parsec String ParserState
 
 type Name = String
@@ -51,8 +53,8 @@ overrideModifier = "override "
 
 indented :: Int -> String -> Parser String
 indented level s = do
-  ParserState comment baseIndent indent <- getState
-  string $ comment ++ replicate (baseIndent + indent * level) ' '
+  ParserState hostLangcomment baseIndent indent <- getState
+  string $ hostLangcomment ++ replicate (baseIndent + indent * level) ' '
   string s
 
 token :: Parser String
