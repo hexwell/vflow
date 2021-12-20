@@ -234,8 +234,8 @@ analyze s (ImportsBlock vs maybeOs) = do
 
     checkOptionalImport s (Variable p n _) =
       unless (member n s) $
-        warning p
-          $ "Import of optional variable '" ++ n ++ "' not satisfied."
+        warning p $
+          "Import of optional variable '" ++ n ++ "' not satisfied."
 
 analyze s (ExportsBlock vs) = do
   inspections vs
