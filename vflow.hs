@@ -184,7 +184,7 @@ inspections vs = forM_ vs . runAll
 
 checkName :: Variable -> IO ()
 checkName (Variable _ "" _) = error "Empty variable name."
-checkName (Variable _ _ _) = return ()
+checkName _ = return ()
 
 checkEmptyComment :: Variable -> IO ()
 checkEmptyComment (Variable p name (Just "")) = warning p $
