@@ -1,6 +1,6 @@
 import Control.Applicative ((<|>), many)
 import Control.Category ((>>>))
-import Control.Monad (when, foldM_)
+import Control.Monad (unless, when, foldM_)
 import Data.Composition ((.:))
 import Data.Foldable (forM_)
 import Data.Function ((&))
@@ -52,7 +52,7 @@ overrideModifier = "override "
 indented :: Int -> String -> Parser String
 indented level s = do
   ParserState comment baseIndent indent <- getState
-  string $ comment ++ (replicate (baseIndent + indent * level) ' ')
+  string $ comment ++ replicate (baseIndent + indent * level) ' '
   string s
 
 token :: Parser String
@@ -221,11 +221,11 @@ analyze s (ImportsBlock vs maybeOs) = do
     extractVariables (Either vs) = vs
 
     checkImport s (Simple (Variable p n _)) =
-      when (not (member n s)) $
+      unless (member n s) $
         error' p $ "Import of variable '" ++ n ++ "' not satisfied."
 
     checkImport s (Either vs) =
-      when (not (any (flip member s . name) vs)) $
+      unless (any (flip member s . name) vs) $
         error' p $ "Import of either variable "
                 ++ intercalate " / " (map name vs)
                 ++ " not satisfied."
@@ -233,7 +233,7 @@ analyze s (ImportsBlock vs maybeOs) = do
         (Variable p _ _) = head vs
 
     checkOptionalImport s (Variable p n _) =
-      when (not (member n s)) $
+      unless (member n s) $
         warning p
           $ "Import of optional variable '" ++ n ++ "' not satisfied."
 
