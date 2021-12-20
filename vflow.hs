@@ -1,6 +1,6 @@
 import Control.Applicative ((<|>), many)
 import Control.Category ((>>>))
-import Control.Monad (foldM_)
+import Control.Monad (when, foldM_)
 import Data.Composition ((.:))
 import Data.Foldable (forM_)
 import Data.Function ((&))
@@ -92,7 +92,7 @@ just :: Functor f => f x -> f (Maybe x)
 just = fmap Just
 
 nothing :: Functor f => f x -> f (Maybe y)
-nothing = fmap $ \_ -> Nothing
+nothing = fmap $ const Nothing
 
 variables :: Parser v -> Parser [v]
 variables v = fmap catMaybes $ many $ maybeVar <|> maybeEmpty
@@ -110,8 +110,8 @@ eitherVariableDeclaration l = do
 simpleOrEitherVariableDeclaration :: Int -> Parser EitherVariableDeclaration
 simpleOrEitherVariableDeclaration l = try either <|> try simple
   where
-    either =               eitherVariableDeclaration l
-    simple = fmap Simple $ simpleVariableDeclaration l
+    either =            eitherVariableDeclaration l
+    simple = Simple <$> simpleVariableDeclaration l
 
 optionals :: Int -> Parser [OptionalVariableDeclaration]
 optionals l = do
@@ -150,8 +150,8 @@ block :: Parser (Maybe Block)
 block = maybeBlock <|> maybeLine
   where
     blk = try importsBlock <|> try exportsBlock
-    maybeBlock = just    $ blk
-    maybeLine  = nothing $ line
+    maybeBlock = just    blk
+    maybeLine  = nothing line
 
 parser :: Parser [Block]
 parser = do
@@ -165,7 +165,7 @@ parse "bash" = runParser parser (ParserState "#" 1 2)
 type AnalyzerState = Set Name
 
 msg :: SourcePos -> String -> String -> IO ()
-msg p t s = putStrLn $ (show p) ++ "\n" ++ t ++ ": " ++ s ++ "\n"
+msg p t s = putStrLn $ show p ++ "\n" ++ t ++ ": " ++ s ++ "\n"
 
 warning :: SourcePos -> String -> IO ()
 warning p = msg p "WARNING"
@@ -194,10 +194,10 @@ checkEmptyComment _ = return ()
 name :: Variable -> Name
 name (Variable _ n _) = n
 
-analyze :: AnalyzerState -> Block -> IO (AnalyzerState)
+analyze :: AnalyzerState -> Block -> IO AnalyzerState
 analyze s (ImportsBlock vs maybeOs) = do
   inspections vs
-    [ extractVariables >>> (mapM_ $ runAll
+    [ extractVariables >>> mapM_ (runAll
       [ checkName
       , checkComment ])
     , checkImport s ]
@@ -221,24 +221,21 @@ analyze s (ImportsBlock vs maybeOs) = do
     extractVariables (Either vs) = vs
 
     checkImport s (Simple (Variable p n _)) =
-      if member n s
-      then return ()
-      else error' p $ "Import of variable '" ++ n ++ "' not satisfied."
+      when (not (member n s)) $
+        error' p $ "Import of variable '" ++ n ++ "' not satisfied."
 
     checkImport s (Either vs) =
-      if any (((flip member) s) . name) vs
-      then return ()
-      else error' p $ "Import of either variable "
-                   ++ intercalate " / " (map name vs)
-                   ++ " not satisfied."
+      when (not (any (flip member s . name) vs)) $
+        error' p $ "Import of either variable "
+                ++ intercalate " / " (map name vs)
+                ++ " not satisfied."
       where
-        (Variable p _ _) = vs !! 0
+        (Variable p _ _) = head vs
 
     checkOptionalImport s (Variable p n _) =
-      if member n s
-      then return ()
-      else warning p
-        $ "Import of optional variable '" ++ n ++ "' not satisfied."
+      when (not (member n s)) $
+        warning p
+          $ "Import of optional variable '" ++ n ++ "' not satisfied."
 
 analyze s (ExportsBlock vs) = do
   inspections vs
@@ -258,15 +255,14 @@ analyze s (ExportsBlock vs) = do
       warning p $ "Variable '" ++ name ++ "' is missing comment."
 
     checkOverride s (Normal (Variable p n _)) =
-      if member n s
-      then warning p $ "Re-declaration of variable '" ++ n
-                    ++ "' without " ++ overrideModifier ++ "modifier."
-      else return ()
+      when (member n s) $
+        warning p $ "Re-declaration of variable '" ++ n
+                 ++ "' without " ++ overrideModifier ++ "modifier."
     checkOverride _ (Override _) = return ()
 
 main :: IO ()
 main = do
-  lang:file:[] <- getArgs
+  [lang, file] <- getArgs
   content <- readFile file
 
   case parse lang file content of
