@@ -225,7 +225,7 @@ analyze s (ImportsBlock vs maybeOs) = do
         error' p $ "Import of variable '" ++ n ++ "' not satisfied."
 
     checkImport s (Either vs) =
-      unless (any (flip member s . name) vs) $
+      unless (any (name >>> flip member s) vs) $
         error' p $ "Import of either variable "
                 ++ intercalate " / " (map name vs)
                 ++ " not satisfied."
