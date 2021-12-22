@@ -35,7 +35,7 @@ many :: (Traversable t, Monad m) => (Filename -> ExceptT e m [a]) -> t Filename 
 many p = mapM p >>> fmap concat
 
 parseRoot :: String -> Filename -> IO (Either ParseError [Block])
-parseRoot l rootFile = runExceptT $ allFiles >>= many (parseVflow l)
+parseRoot l@"bash" rootFile = runExceptT $ allFiles >>= many (parseVflow l)
   where
     allFiles = (rootFile:) <$> parseBash rootFile
 
