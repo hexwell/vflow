@@ -6,11 +6,10 @@ module Analyzer (
 import Control.Category ((>>>))
 import Control.Monad (unless, when, foldM_)
 import Data.Composition ((.:))
-import Data.Foldable (forM_, toList)
+import Data.Foldable (forM_)
 import Data.Function ((&))
 import Data.Functor (void)
 import Data.List (intercalate)
-import Data.Maybe (catMaybes)
 import Data.Set (Set, fromList, member, insert, union)
 import qualified Data.Set as S
 import System.Exit(exitWith, ExitCode(ExitFailure))
@@ -21,7 +20,6 @@ import VflowParser (
   Name,
   Block(NewFile, ExportsBlock, ImportsBlock),
   EitherVariableDeclaration(Simple, Either),
-  OptionalVariableDeclaration,
   OverridableVariableDeclaration(Normal, Override),
   overrideModifier)
 
