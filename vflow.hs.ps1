@@ -1,5 +1,7 @@
 cls
-ghc .\vflow.hs
+cd hs
+ghc -o vflow Vflow
+cd ..
 echo ""
-.\vflow.exe bash $args[0]
+.\hs\vflow.exe bash $args[0]
 echo ""
