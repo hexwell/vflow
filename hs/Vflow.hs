@@ -1,6 +1,7 @@
 import Control.Category ((>>>))
 import Control.Monad (foldM_)
 import Control.Monad.Trans.Except (ExceptT(ExceptT), runExceptT)
+import Data.Function ((&))
 import Data.List (intercalate)
 import GHC.Utils.Misc (split)
 import System.Environment (getArgs)
@@ -20,7 +21,7 @@ parseVflow "bash" filename = do
     (NewFile:) <$> runParser V.parser (V.ParserState "#" 1 2) filename content
 
 base :: Char -> Filename -> Path
-base c f = intercalate [c] $ init $ split c f
+base c f = split c f & init & intercalate [c]
 
 parseBash :: Filename -> IO (Either ParseError [Filename])
 parseBash filename = do
