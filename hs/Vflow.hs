@@ -29,8 +29,11 @@ parseBash filename = do
 
   return $ runParser B.parser (B.ParserState '\\' (base '\\' filename)) filename content
 
-flatten :: [IO (Either ParseError [a])] -> IO (Either ParseError [a])
-flatten = sequence >>> fmap (sequence >>> fmap concat)
+flatten :: Traversable t, Monad m, Monad n => t (m (n [a])) -> m (n [a])
+flatten = sequence +> sequence +> concat
+  where
+    infixr 0 +>
+    a +> b = a >>> fmap b
 
 multi :: (Filename -> IO (Either ParseError [a])) -> [Filename] -> IO (Either ParseError [a])
 multi p fns = flatten $ map p fns
