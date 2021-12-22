@@ -126,7 +126,8 @@ importsBlock = do
 overridableVariableDeclaration :: Int -> Parser OverridableVariableDeclaration
 overridableVariableDeclaration l = do
   indented l ""
-  modifier <- optionMaybe $ try $ string overrideModifier >> spaces & void
+  modifier <- optionMaybe $ try $
+    string overrideModifier >> char ' ' >> spaces & void
   v <- variable
   return $ case modifier of
     Nothing -> Normal v

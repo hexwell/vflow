@@ -5,10 +5,10 @@ module BashParser (
   parser
 ) where
 
-import Control.Applicative ((<|>), some, many)
+import Control.Applicative (some, (<|>), many)
 import Data.Maybe (catMaybes)
-import Text.Parsec (Parsec, string, noneOf, modifyState, endOfLine, getState,
-                    try, eof)
+import Text.Parsec (Parsec, char, string, noneOf, modifyState, endOfLine,
+                    getState, try, eof)
 
 import Utils (spaces, line, just, nothing)
 
@@ -18,8 +18,14 @@ type Filename = String
 data ParserState = ParserState Char Path
 type Parser = Parsec String ParserState
 
-tillEol :: Parser String
-tillEol = some $ noneOf "\n"
+ppath :: Parser String
+ppath = do
+  char ' '
+  spaces
+  p <- some $ noneOf " \n"
+  spaces
+  endOfLine
+  return p
 
 replace :: Char -> Char -> String -> String
 replace a b = map $ \x -> if x == a then b else x
@@ -31,18 +37,14 @@ slashes '/' = replace '\\' '/'
 cd :: Parser ()
 cd = do
   string "cd"
-  spaces
-  path <- tillEol
+  path <- ppath
   modifyState $ \(ParserState c p) -> ParserState c (p ++ [c] ++ path)
-  endOfLine
   return ()
 
 source :: Parser Filename
 source = do
   string "source"
-  spaces
-  fn <- tillEol
-  endOfLine
+  fn <- ppath
   ParserState c path <- getState
   return $ slashes c (path ++ [c] ++ fn)
 

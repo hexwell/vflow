@@ -5,11 +5,11 @@ module Utils (
   nothing
 ) where
 
-import Text.Parsec (Stream, ParsecT, skipMany1, char, noneOf, endOfLine,
+import Text.Parsec (Stream, ParsecT, skipMany, char, noneOf, endOfLine,
                     manyTill)
 
 spaces :: Stream s m Char => ParsecT s u m ()
-spaces = skipMany1 $ char ' '
+spaces = skipMany $ char ' '
 
 line :: Stream s m Char => ParsecT s u m String
 line = noneOf "\n" `manyTill` endOfLine
