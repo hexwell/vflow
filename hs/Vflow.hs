@@ -1,6 +1,7 @@
 import Control.Category ((>>>))
 import Control.Monad (foldM_)
-import Control.Monad.Trans.Except (ExceptT(ExceptT), runExceptT)
+import Control.Monad.Trans.Class (lift)
+import Control.Monad.Trans.Except (ExceptT, except, runExceptT)
 import Data.Function ((&))
 import Data.List (intercalate)
 import GHC.Utils.Misc (split)
@@ -13,37 +14,30 @@ import qualified BashParser as B
 import VflowParser (Block(NewFile))
 import qualified VflowParser as V
 
-parseVflow :: String -> Filename -> IO (Either ParseError [Block])
+parseVflow :: String -> Filename -> ExceptT ParseError IO [Block]
 parseVflow "bash" filename = do
-  content <- readFile filename
+  content <- lift $ readFile filename
 
-  return $
+  except $
     (NewFile:) <$> runParser V.parser (V.ParserState "#" 1 2) filename content
 
 base :: Char -> Filename -> Path
 base c f = split c f & init & intercalate [c]
 
-parseBash :: Filename -> IO (Either ParseError [Filename])
+parseBash :: Filename -> ExceptT ParseError IO [Filename]
 parseBash filename = do
-  content <- readFile filename
+  content <- lift $ readFile filename
 
-  return $ runParser B.parser (B.ParserState '\\' (base '\\' filename)) filename content
+  except $
+    runParser B.parser (B.ParserState '\\' (base '\\' filename)) filename content
 
-flatten :: Traversable t, Monad m, Monad n => t (m (n [a])) -> m (n [a])
-flatten = sequence +> sequence +> concat
-  where
-    infixr 0 +>
-    a +> b = a >>> fmap b
-
-multi :: (Filename -> IO (Either ParseError [a])) -> [Filename] -> IO (Either ParseError [a])
-multi p fns = flatten $ map p fns
+many :: (Traversable t, Monad m) => (Filename -> ExceptT e m [a]) -> t Filename -> ExceptT e m [a]
+many p = mapM p >>> fmap concat
 
 parseRoot :: String -> Filename -> IO (Either ParseError [Block])
-parseRoot l@"bash" rootFile = runExceptT $ allFiles >>= mpvf
+parseRoot l@"bash" rootFile = runExceptT $ allFiles >>= many (parseVflow l)
   where
-    pb   = ExceptT $ parseBash rootFile
-    mpvf = ExceptT . multi (parseVflow l)
-    allFiles = (rootFile:) <$> pb
+    allFiles = (rootFile:) <$> parseBash rootFile
 
 main :: IO ()
 main = do
