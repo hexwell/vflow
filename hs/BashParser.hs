@@ -48,8 +48,8 @@ source = do
   ParserState c path <- getState
   return $ slashes c (path ++ [c] ++ fn)
 
-maybeDirective :: Parser (Maybe Filename)
-maybeDirective = try (maybeCd <|> maybeSource) <|> maybeLine
+maybeCommand :: Parser (Maybe Filename)
+maybeCommand = try (maybeCd <|> maybeSource) <|> maybeLine
   where
     maybeCd     = nothing cd
     maybeSource = just    source
@@ -57,6 +57,6 @@ maybeDirective = try (maybeCd <|> maybeSource) <|> maybeLine
 
 parser :: Parser [Filename]
 parser = do
-  sources <- many maybeDirective
+  sources <- many maybeCommand
   eof
   return (catMaybes sources)
