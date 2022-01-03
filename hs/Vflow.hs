@@ -6,6 +6,7 @@ import Data.Function ((&))
 import Data.List (intercalate)
 import GHC.Utils.Misc (split)
 import System.Environment (getArgs)
+import System.Info (os)
 import Text.Parsec (ParseError, runParser)
 
 import Analyzer (empty, analyze)
@@ -29,7 +30,13 @@ parseBash filename = do
   content <- lift $ readFile filename
 
   except $
-    runParser B.parser (B.ParserState '\\' (base '\\' filename)) filename content
+    runParser B.parser (B.ParserState sep (base sep filename)) filename content
+
+  where
+    sep = case os of
+        "linux"   -> '/'
+        "mingw32" -> '\\'
+
 
 many :: (Traversable t, Monad m) => (Filename -> ExceptT e m [a]) -> t Filename -> ExceptT e m [a]
 many p = mapM p >>> fmap concat
