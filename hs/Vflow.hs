@@ -5,6 +5,7 @@ import Control.Monad.Trans.Except (ExceptT, except, runExceptT)
 import Data.Function ((&))
 import Data.List (intercalate)
 import GHC.Utils.Misc (split)
+import GHC.Utils.Monad (concatMapM)
 import System.Environment (getArgs)
 import System.Info (os)
 import Text.Parsec (ParseError, runParser)
@@ -37,12 +38,8 @@ parseBash filename = do
         "linux"   -> '/'
         "mingw32" -> '\\'
 
-
-many :: (Traversable t, Monad m) => (Filename -> ExceptT e m [a]) -> t Filename -> ExceptT e m [a]
-many p = mapM p >>> fmap concat
-
 parseRoot :: String -> Filename -> IO (Either ParseError [Block])
-parseRoot l@"bash" rootFile = runExceptT $ allFiles >>= many (parseVflow l)
+parseRoot l@"bash" rootFile = runExceptT $ allFiles >>= concatMapM (parseVflow l)
   where
     allFiles = (rootFile:) <$> parseBash rootFile
 
