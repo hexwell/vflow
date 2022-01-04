@@ -1,7 +1,7 @@
 cls
 cd hs
 ghc -o vflow Vflow
-$ghc_path = Split-Path -parent (Split-Path -parent (where.exe ghc))
+$ghc_path = split-path (split-path (where.exe ghc))
 & $ghc_path\mingw\bin\strip vflow.exe
 cd ..
 echo ""
