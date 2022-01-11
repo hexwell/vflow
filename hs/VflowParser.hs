@@ -85,8 +85,8 @@ simpleVariableDeclaration l = do
 
 empty :: Parser ()
 empty = do
-  ParserState comment _ _ <- getState
-  string comment
+  ParserState hostLangcomment _ _ <- getState
+  string hostLangcomment
   endOfLine
   return ()
 
