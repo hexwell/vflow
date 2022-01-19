@@ -7,16 +7,16 @@ module BashParser (
 
 import Control.Applicative (some, (<|>), many)
 import Data.Maybe (catMaybes)
-import Text.Parsec (Parsec, char, string, noneOf, modifyState, endOfLine,
-                    getState, try, eof)
+import Text.Parsec (char, string, noneOf, modifyState, endOfLine, getState,
+                    try, eof)
 
-import Utils (spaces, line, just, nothing)
+import Utils (StringParser, spaces, line, just, nothing)
 
 type Path = String
 type Filename = String
 
 data ParserState = ParserState Char Path
-type Parser = Parsec String ParserState
+type Parser = StringParser ParserState
 
 ppath :: Parser String
 ppath = do

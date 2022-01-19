@@ -1,12 +1,15 @@
 module Utils (
+  StringParser,
   spaces,
   line,
   just,
   nothing
 ) where
 
-import Text.Parsec (Stream, ParsecT, skipMany, char, noneOf, endOfLine,
+import Text.Parsec (Parsec, Stream, ParsecT, skipMany, char, noneOf, endOfLine,
                     manyTill)
+
+type StringParser u = Parsec String u
 
 spaces :: Stream s m Char => ParsecT s u m ()
 spaces = skipMany $ char ' '

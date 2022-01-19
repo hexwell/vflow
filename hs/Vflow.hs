@@ -15,8 +15,9 @@ import BashParser (Filename, Path)
 import qualified BashParser as B
 import VflowParser (Block(NewFile))
 import qualified VflowParser as V
+import Utils (StringParser)
 
-parse :: Parsec String s a -> s -> Filename -> ExceptT ParseError IO a
+parse :: StringParser s a -> s -> Filename -> ExceptT ParseError IO a
 parse parser state filename = do
   content <- lift $ readFile filename
 

@@ -15,15 +15,15 @@ import Control.Applicative ((<|>), many)
 import Data.Function ((&))
 import Data.Functor (void)
 import Data.Maybe (catMaybes)
-import Text.Parsec (Parsec, SourcePos, getState, getParserState, statePos,
-                    string, endOfLine, noneOf, char, optionMaybe, try, eof)
+import Text.Parsec (SourcePos, getState, getParserState, statePos, string,
+                    endOfLine, noneOf, char, optionMaybe, try, eof)
 
-import Utils (spaces, line, just, nothing)
+import Utils (StringParser, spaces, line, just, nothing)
 
 type HostLangComment = String
 type Indent = Int
 data ParserState = ParserState HostLangComment Indent Indent
-type Parser = Parsec String ParserState
+type Parser = StringParser ParserState
 
 type Name = String
 type Comment = String
