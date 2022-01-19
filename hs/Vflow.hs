@@ -8,7 +8,7 @@ import GHC.Utils.Misc (split)
 import GHC.Utils.Monad (concatMapM)
 import System.Environment (getArgs)
 import System.Info (os)
-import Text.Parsec (ParseError, runParser)
+import Text.Parsec (ParseError, Parsec, runParser)
 
 import Analyzer (empty, analyze)
 import BashParser (Filename, Path)
@@ -16,23 +16,21 @@ import qualified BashParser as B
 import VflowParser (Block(NewFile))
 import qualified VflowParser as V
 
-parseVflow :: String -> Filename -> ExceptT ParseError IO [Block]
-parseVflow "bash" filename = do
+parse :: Parsec String s a -> s -> Filename -> ExceptT ParseError IO a
+parse parser state filename = do
   content <- lift $ readFile filename
 
   except $
-    (NewFile:) <$> runParser V.parser (V.ParserState "#" 1 2) filename content
+    runParser parser state filename content
+
+parseVflow :: String -> Filename -> ExceptT ParseError IO [Block]
+parseVflow "bash" = fmap (NewFile:) . parse V.parser (V.ParserState "#" 1 2)
 
 base :: Char -> Filename -> Path
 base c f = split c f & init & intercalate [c]
 
 parseBash :: Filename -> ExceptT ParseError IO [Filename]
-parseBash filename = do
-  content <- lift $ readFile filename
-
-  except $
-    runParser B.parser (B.ParserState sep (base sep filename)) filename content
-
+parseBash = flip (parse B.parser) <*> (base sep >>> (B.ParserState sep))
   where
     sep = case os of
         "linux"   -> '/'
