@@ -25,6 +25,8 @@ import VflowParser (
 
 data AnalyzerState = AnalyzerState (Set Name) (Set Name) deriving Show
 
+type VariableInspection = Variable -> IO ()
+
 empty :: AnalyzerState
 empty = AnalyzerState S.empty S.empty
 
@@ -46,11 +48,11 @@ inspections :: (Foldable f, Traversable t, Monad m)
             => f a -> t (a -> m b) -> m ()
 inspections vs = forM_ vs . runAll
 
-checkName :: Variable -> IO ()
+checkName :: VariableInspection
 checkName (Variable _ "" _) = error "Empty variable name."
 checkName _ = return ()
 
-checkEmptyComment :: Variable -> IO ()
+checkEmptyComment :: VariableInspection
 checkEmptyComment (Variable p name (Just "")) = warning p $
   "Empty comment for variable '" ++ name ++ "'."
 checkEmptyComment _ = return ()

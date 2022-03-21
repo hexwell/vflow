@@ -17,20 +17,23 @@ import VflowParser (Block(NewFile))
 import qualified VflowParser as V
 import Utils (StringParser)
 
-parse :: StringParser s a -> s -> Filename -> ExceptT ParseError IO a
+type ParserMonad a = ExceptT ParseError IO a
+type Parser a = Filename -> ParserMonad a
+
+parse :: StringParser s a -> s -> Filename -> ParserMonad a
 parse parser state filename = do
   content <- lift $ readFile filename
 
   except $
     runParser parser state filename content
 
-parseVflow :: String -> Filename -> ExceptT ParseError IO [Block]
+parseVflow :: String -> Parser [Block]
 parseVflow "bash" = fmap (NewFile:) . parse V.parser (V.ParserState "#" 1 2)
 
 base :: Char -> Filename -> Path
 base c f = split c f & init & intercalate [c]
 
-parseBash :: Filename -> ExceptT ParseError IO [Filename]
+parseBash :: Parser [Filename]
 parseBash = flip (parse B.parser) <*> (base sep >>> (B.ParserState sep))
   where
     sep = case os of

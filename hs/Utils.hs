@@ -11,14 +11,17 @@ import Text.Parsec (Parsec, Stream, ParsecT, skipMany, char, noneOf, endOfLine,
 
 type StringParser u = Parsec String u
 
-spaces :: Stream s m Char => ParsecT s u m ()
+type Parser s u m a = Stream s m Char => ParsecT s u m a
+type FunctorOfXToFunctorOfMaybeY f x y = Functor f => f x -> f (Maybe y)
+
+spaces ::  Parser s u m ()
 spaces = skipMany $ char ' '
 
-line :: Stream s m Char => ParsecT s u m String
+line :: Parser s u m String
 line = noneOf "\n" `manyTill` endOfLine
 
-just :: Functor f => f x -> f (Maybe x)
+just :: FunctorOfXToFunctorOfMaybeY f x x
 just = fmap Just
 
-nothing :: Functor f => f x -> f (Maybe y)
+nothing :: FunctorOfXToFunctorOfMaybeY f x y
 nothing = fmap $ const Nothing

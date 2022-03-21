@@ -13,7 +13,7 @@ module VflowParser (
 
 import Control.Applicative ((<|>), many)
 import Data.Function ((&))
-import Data.Functor (void)
+import Data.Functor ((<&>), void)
 import Data.Maybe (catMaybes)
 import Text.Parsec (SourcePos, getState, getParserState, statePos, string,
                     endOfLine, noneOf, char, optionMaybe, try, eof)
@@ -72,7 +72,7 @@ comment = do
 
 variable :: Parser Variable
 variable = do
-  pos <- fmap statePos getParserState
+  pos <- getParserState <&> statePos
   name <- many $ noneOf " :\n"
   comm <- optionMaybe comment
   endOfLine
@@ -91,7 +91,7 @@ empty = do
   return ()
 
 variables :: Parser v -> Parser [v]
-variables v = fmap catMaybes $ many $ maybeVar <|> maybeEmpty
+variables v = many (maybeVar <|> maybeEmpty) <&> catMaybes
   where
     maybeVar   = just    $ try v
     maybeEmpty = nothing $ try empty
