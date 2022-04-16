@@ -72,7 +72,7 @@ comment = do
 
 variable :: Parser Variable
 variable = do
-  pos <- getParserState <&> statePos
+  pos <- statePos <$> getParserState
   name <- many $ noneOf " :\n"
   comm <- optionMaybe comment
   endOfLine

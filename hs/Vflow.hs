@@ -41,7 +41,7 @@ parseBash = flip (parse B.parser) <*> (base sep >>> (B.ParserState sep))
         "mingw32" -> '\\'
 
 parseRoot :: String -> Filename -> IO (Either ParseError [Block])
-parseRoot l@"bash" rootFile = runExceptT $ allFiles >>= concatMapM (parseVflow l)
+parseRoot l@"bash" rootFile = allFiles >>= concatMapM (parseVflow l) & runExceptT
   where
     allFiles = (rootFile:) <$> parseBash rootFile
 
