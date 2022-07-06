@@ -1,3 +1,5 @@
+{-# LANGUAGE RankNTypes, FlexibleContexts #-}
+
 module Utils (
   StringParser,
   spaces,
