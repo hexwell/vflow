@@ -2,10 +2,9 @@ import Control.Category ((>>>))
 import Control.Monad (foldM_)
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Trans.Except (ExceptT, except, runExceptT)
+import Data.Composition ((.:))
 import Data.Function ((&))
 import Data.List (intercalate)
-import GHC.Utils.Misc (split)
-import GHC.Utils.Monad (concatMapM)
 import System.Environment (getArgs)
 import System.Info (os)
 import Text.Parsec (ParseError, Parsec, runParser)
@@ -30,6 +29,12 @@ parse parser state filename = do
 parseVflow :: String -> Parser [Block]
 parseVflow "bash" = fmap (NewFile:) . parse V.parser (V.ParserState "#" 1 2)
 
+split :: Char -> String -> [String]
+split c s = case rest of
+    [] -> [chunk]
+    _:rest -> chunk : split c rest
+  where (chunk, rest) = break (==c) s
+
 base :: Char -> Filename -> Path
 base c f = split c f & init & intercalate [c]
 
@@ -39,6 +44,9 @@ parseBash = flip (parse B.parser) <*> (base sep >>> (B.ParserState sep))
     sep = case os of
         "linux"   -> '/'
         "mingw32" -> '\\'
+
+concatMapM :: Monad m => (a -> m [b]) -> [a] -> m [b]
+concatMapM = fmap concat .: mapM
 
 parseRoot :: String -> Filename -> IO (Either ParseError [Block])
 parseRoot l@"bash" rootFile = allFiles >>= concatMapM (parseVflow l) & runExceptT
