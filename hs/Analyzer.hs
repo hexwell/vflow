@@ -49,7 +49,7 @@ inspections :: (Foldable f, Traversable t, Monad m)
 inspections vs = forM_ vs . runAll
 
 checkName :: VariableInspection
-checkName (Variable _ "" _) = error "Empty variable name."
+checkName (Variable p "" _) = error' p "Empty variable name."
 checkName _ = return ()
 
 checkEmptyComment :: VariableInspection
