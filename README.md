@@ -72,3 +72,7 @@ This is an example of an Exports block:
 ```
 
 This declares variables a (with comment aaaa) and b (without comment) and overrides variable c (with comment cccc).
+
+# TODO
+
+Use [language-bash](https://hackage.haskell.org/package/language-bash) to actually parse bash for variables (and names/tokens/identifiers in general) uses (and generate vflow snippets?)?
